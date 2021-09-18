@@ -1,11 +1,8 @@
-
 import sys, os
 import requests
 import re, json
 
-g_settings_filename = "settings.json"
-g_site_list = []
-
+DEFAULT_SETTINGS_FILENAME = "settings.json"
 
 class Site:
     def __init__(self, url, pattern):
@@ -21,26 +18,32 @@ class Site:
     def __str__(self):
         return self.__url
 
+class SettingsManager:
+    def __init__(self):
+        self.__settings = {}
 
-def load_settings():
-    global g_settings_filename, g_site_list
-    filename = os.path.join(sys.path[0], g_settings_filename)
-    print('load settings from file: ' + filename)
-    if not os.path.isfile(filename):
-        print('Error: no settings file found!')
-        return False
-    try:
-        with open(filename, "r") as read_file:
-            g_settings = json.load(read_file)
-        for item in g_settings['sites']:
-            g_site_list.append(Site(item['url'], item['pattern']))
-    except (json.decoder.JSONDecodeError, NameError):
-        print("Error: wrong settings file format")
-        return False
-    except:
-        print('Error: wrong settings')
-        return False
-    return True
+    def load(self, settings_filename):
+        filename = os.path.join(sys.path[0], settings_filename)
+        print('load settings from file: ' + filename)
+        if not os.path.isfile(filename):
+            print('Error: no settings file found!')
+            return False
+        try:
+            with open(filename, "r") as read_file:
+                self.__settings = json.load(read_file)
+        except json.decoder.JSONDecodeError:
+            print("Error: wrong settings file format")
+            return False
+        return True
+
+    def get_site_list(self):
+        site_list = []
+        try:
+            for item in self.__settings['sites']:
+                site_list.append(Site(item['url'], item['pattern']))
+        except:
+            print('Error: wrong settings')
+        return site_list
 
 def search(pattern, text):
     if not pattern:
@@ -61,12 +64,14 @@ def action(site):
     return info
 
 def main():
+    settings_manager = SettingsManager()
     print("Load settings")
-    if not load_settings():
+    if not settings_manager.load(DEFAULT_SETTINGS_FILENAME):
         return
 
     print("Working...")
-    info_it = map(action, g_site_list)
+    sites = settings_manager.get_site_list()
+    info_it = map(action, sites)
     for info in list(info_it):
         print(info)
 
