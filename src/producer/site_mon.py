@@ -1,6 +1,7 @@
 import sys, os
 import requests
 import re, json
+import concurrent.futures
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 
@@ -56,7 +57,7 @@ class SiteMonitor:
         result = regex.search(text)
         return result.group(0) if result else None
 
-    def __check_site(self, site):
+    def check_site(self, site):
         url = site.get_url()
         pattern = site.get_pattern()
         response = requests.get(url)
@@ -68,7 +69,13 @@ class SiteMonitor:
         return info
 
     def check(self):
-        info_it = map(self.__check_site, self.__site_list)
+        info_it = map(self.check_site, self.__site_list)
+        for info in list(info_it):
+            print(info)
+
+    def parallel_check(self):
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            info_it = executor.map(self.check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
@@ -81,7 +88,7 @@ def main():
     print("Working...")
     site_list = settings_manager.get_site_list()
     site_mon = SiteMonitor(site_list)
-    site_mon.check()
+    site_mon.parallel_check()
 
 if __name__ == '__main__':
     try:
