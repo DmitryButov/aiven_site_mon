@@ -25,7 +25,36 @@ python3 src/producer/site_mon.py
 
 ## Getting Started Guide
 
-Create a simple CSV-file with list of necessary sites...
+- Create a  settings.json file with list of necessary sites, or modify an existing file, and put it into `src/producer` directory. Also, optionally, you can set a pattern for search some content by regex. If pattern is not needed, just use empty string.
+
+  Example:
+
+  ```json
+  {
+      "sites": [
+          {
+              "url": "https://example.com",
+              "pattern": "<h1>(.+)</h1>"
+          },
+          {
+              "url": "https://example.com",
+              "pattern": "<title>(.+)</title>"
+          },
+          {
+              "url": "https://aiven.io/",
+              "pattern": ""
+          }
+      ]
+  }
+  ```
+
+- start producer (site monitor)
+
+  ```sh
+  python3 src/producer/site_mon.py
+  ```
+
+  You can see results in console log.
 
 > Note: Application is under development
 > We will add more details as the project develops.
