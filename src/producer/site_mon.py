@@ -1,20 +1,31 @@
 
+import sys, os
 import requests
-import re
+import re, json
 
-sites = [
-    { 'url': 'https://example.com', 'pattern': '<h1>(.+)</h1>' },
-    { 'url': 'https://postgrespro.ru', 'pattern': '<title>(.+)</title>' },
-    { 'url': 'https://www.postgresql.org', 'pattern': ''},
-#    'https://aiven.io/',
-#    'https://aiven.io/about',
-#    'https://www.google.com/search?q=aiven',
-#    'https://yandex.ru/search/?lr=51&text=aiven',
-#    'https://github.com/aiven/aiven-examples/',
-#    'https://medium.com/',
-#    'https://medium.com/@rinu.gour123/kafka-for-beginners-74ec101bc82d',
-#    'https://www.youtube.com/watch?v=YKXCRs_P-xU',
-]
+g_settings_filename = "settings.json"
+
+g_site_list = []
+
+def load_settings():
+    global g_settings_filename, g_site_list
+    filename = os.path.join(sys.path[0], g_settings_filename)
+    print('load settings from file: ' + filename)
+    if not os.path.isfile(filename):
+        print('Error: no settings file found!')
+        return False
+    try:
+        with open(filename, "r") as read_file:
+            g_settings = json.load(read_file)
+        for site in g_settings['sites']:
+            g_site_list.append( {'url': site['url'], 'pattern': site['pattern']} )
+    except (json.decoder.JSONDecodeError, NameError):
+        print("Error: wrong settings file format")
+        return False
+    except:
+        print('Error: wrong settings')
+        return False
+    return True
 
 def search(pattern, text):
     if not pattern:
@@ -33,8 +44,12 @@ def action(site):
     return info
 
 def main():
+    print("Load settings")
+    if not load_settings():
+        return
+
     print("Working...")
-    info_it = map(action, sites)
+    info_it = map(action, g_site_list)
     for info in list(info_it):
         print(info)
 
