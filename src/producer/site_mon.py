@@ -4,8 +4,23 @@ import requests
 import re, json
 
 g_settings_filename = "settings.json"
-
 g_site_list = []
+
+
+class Site:
+    def __init__(self, url, pattern):
+        self.__url = url
+        self.__pattern = pattern
+
+    def get_url(self):
+        return self.__url
+
+    def get_pattern(self):
+        return self.__pattern
+
+    def __str__(self):
+        return self.__url
+
 
 def load_settings():
     global g_settings_filename, g_site_list
@@ -17,8 +32,8 @@ def load_settings():
     try:
         with open(filename, "r") as read_file:
             g_settings = json.load(read_file)
-        for site in g_settings['sites']:
-            g_site_list.append( {'url': site['url'], 'pattern': site['pattern']} )
+        for item in g_settings['sites']:
+            g_site_list.append(Site(item['url'], item['pattern']))
     except (json.decoder.JSONDecodeError, NameError):
         print("Error: wrong settings file format")
         return False
@@ -35,10 +50,12 @@ def search(pattern, text):
     return result.group(0) if result else None
 
 def action(site):
-    response = requests.get(site['url'])
+    url = site.get_url()
+    pattern = site.get_pattern()
+    response = requests.get(url)
     access_time = response.elapsed.total_seconds()
-    info = '{:<70}{:<5}{:<7.3f}'.format(site['url'], response.status_code, access_time)
-    search_result = search(site['pattern'], response.text)
+    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
+    search_result = search(pattern, response.text)
     if search_result:
         info += search_result
     return info
