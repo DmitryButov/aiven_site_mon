@@ -5,7 +5,7 @@ import re, json
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 
 class Site:
-    def __init__(self, url, pattern):
+    def __init__(self, url, pattern) -> None:
         self.__url = url
         self.__pattern = pattern
 
@@ -19,7 +19,7 @@ class Site:
         return self.__url
 
 class SettingsManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.__settings = {}
 
     def load(self, settings_filename):
@@ -45,35 +45,43 @@ class SettingsManager:
             print('Error: wrong settings')
         return site_list
 
-def search(pattern, text):
-    if not pattern:
-        return False
-    regex = re.compile(pattern)
-    result = regex.search(text)
-    return result.group(0) if result else None
+class SiteMonitor:
+    def __init__(self, site_list) -> None:
+        self.__site_list = site_list
 
-def action(site):
-    url = site.get_url()
-    pattern = site.get_pattern()
-    response = requests.get(url)
-    access_time = response.elapsed.total_seconds()
-    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
-    search_result = search(pattern, response.text)
-    if search_result:
-        info += search_result
-    return info
+    def __search_pattern(self, pattern, text):
+        if not pattern:
+            return False
+        regex = re.compile(pattern)
+        result = regex.search(text)
+        return result.group(0) if result else None
+
+    def __check_site(self, site):
+        url = site.get_url()
+        pattern = site.get_pattern()
+        response = requests.get(url)
+        access_time = response.elapsed.total_seconds()
+        info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
+        search_result = self.__search_pattern(pattern, response.text)
+        if search_result:
+            info += search_result
+        return info
+
+    def check(self):
+        info_it = map(self.__check_site, self.__site_list)
+        for info in list(info_it):
+            print(info)
 
 def main():
-    settings_manager = SettingsManager()
     print("Load settings")
+    settings_manager = SettingsManager()
     if not settings_manager.load(DEFAULT_SETTINGS_FILENAME):
         return
 
     print("Working...")
-    sites = settings_manager.get_site_list()
-    info_it = map(action, sites)
-    for info in list(info_it):
-        print(info)
+    site_list = settings_manager.get_site_list()
+    site_mon = SiteMonitor(site_list)
+    site_mon.check()
 
 if __name__ == '__main__':
     try:
