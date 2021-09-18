@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, time
 import requests
 import re, json
 import concurrent.futures
@@ -92,6 +92,8 @@ def main():
 
 if __name__ == '__main__':
     try:
+        start_time = time.time()
         main()
+        print("---Done at %s seconds ---" % (time.time() - start_time))
     except KeyboardInterrupt:
         print('exit...')
