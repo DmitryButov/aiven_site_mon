@@ -5,6 +5,15 @@ import concurrent.futures
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 
+def timeit(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        duration = time.time() - start_time
+        print("Debug: Func ""{}"" done at {} seconds".format(func.__name__, duration))
+        return result
+    return wrapper
+
 class Site:
     def __init__(self, url, pattern) -> None:
         self.__url = url
@@ -68,17 +77,20 @@ class SiteMonitor:
             info += search_result
         return info
 
+    @timeit
     def check(self):
         info_it = map(self.check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
+    @timeit
     def parallel_check(self):
         with concurrent.futures.ProcessPoolExecutor() as executor:
             info_it = executor.map(self.check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
+@timeit
 def main():
     print("Load settings")
     settings_manager = SettingsManager()
@@ -88,12 +100,12 @@ def main():
     print("Working...")
     site_list = settings_manager.get_site_list()
     site_mon = SiteMonitor(site_list)
+    #site_mon.check()
     site_mon.parallel_check()
 
 if __name__ == '__main__':
     try:
-        start_time = time.time()
         main()
-        print("---Done at %s seconds ---" % (time.time() - start_time))
+
     except KeyboardInterrupt:
         print('exit...')
