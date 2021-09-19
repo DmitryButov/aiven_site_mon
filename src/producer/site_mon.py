@@ -60,6 +60,9 @@ class SettingsManager:
 
 
 # for testing we use non-class functions
+def test_init():
+    print("test initializer")
+
 def test_check(site):
     try:
         time.sleep(2)
@@ -97,6 +100,14 @@ class SiteMonitor:
         self.__update_thread = threading.Thread(target=self.monitoring)
         self.__exit_event = threading.Event()
         self.__executor = concurrent.futures.ProcessPoolExecutor()
+        #ussue - wrong handling of KeyboardInterrupt in workers...
+        #TODO self.__executor = concurrent.futures.ProcessPoolExecutor(initializer=test_init)
+        #we need to use initializer for disabling handling signal,
+        #signal.signal(signal.SIGINT, signal.SIG_IGN)
+        #but currant local version of my Python (3.6.9) is not support full impl of ProcessPoolExecutor
+        #solutions:
+        #- switch to modern Python (or/and use virtual env)
+        #- use more control by multiprocessing Pool - see example on https://github.com/jreese/multiprocessing-keyboardinterrupt
 
     @timeit
     def check(self):
