@@ -1,9 +1,10 @@
 import sys, os, time
 import requests
 import re, json
-import concurrent.futures
+import concurrent.futures, threading
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
+DEFAULT_UPDATE_PERIOD_SEC = 3
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -55,40 +56,76 @@ class SettingsManager:
             print('Error: wrong settings')
         return site_list
 
-class SiteMonitor:
-    def __init__(self, site_list) -> None:
-        self.__site_list = site_list
 
-    def __search_pattern(self, pattern, text):
-        if not pattern:
-            return False
-        regex = re.compile(pattern)
-        result = regex.search(text)
-        return result.group(0) if result else None
 
-    def check_site(self, site):
+
+# for testing we use non-class functions
+def test_check(site):
+    try:
+        time.sleep(2)
+        print("inside test_check func")
+        return "test_check: {}".format(site.get_url())
+    except KeyboardInterrupt:
+        return "sub-process exit on key"
+
+def search_pattern(pattern, text):
+    if not pattern:
+        return False
+    regex = re.compile(pattern)
+    result = regex.search(text)
+    return result.group(0) if result else None
+
+def check_site(site):
+    try:
         url = site.get_url()
         pattern = site.get_pattern()
         response = requests.get(url)
         access_time = response.elapsed.total_seconds()
         info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
-        search_result = self.__search_pattern(pattern, response.text)
+        search_result = search_pattern(pattern, response.text)
         if search_result:
             info += search_result
         return info
+    except KeyboardInterrupt:
+        print(time.time(), "in subprocess KeyboardInterrupt")
+        return "<<<<fail>>>>"
+
+class SiteMonitor:
+    def __init__(self, update_period_sec, site_list) -> None:
+        self.__site_list = site_list
+        self.__update_period = update_period_sec
+        self.__update_thread = threading.Thread(target=self.monitoring)
+        self.__exit_event = threading.Event()
+        self.__executor = concurrent.futures.ProcessPoolExecutor()
 
     @timeit
     def check(self):
-        info_it = map(self.check_site, self.__site_list)
+        info_it = map(check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
     @timeit
     def parallel_check(self):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            info_it = executor.map(self.check_site, self.__site_list)
+        print("parallel_check started...")
+        info_it = self.__executor.map(test_check, self.__site_list)  # TODO use check_site after testing
         for info in list(info_it):
             print(info)
+
+    def monitoring(self):
+        print("monitoring in thread...")
+        while not self.__exit_event.wait(self.__update_period):
+            self.parallel_check()
+
+    def start(self):
+        print("Monitor starting...")
+        self.__update_thread.start()
+
+    def stop(self):
+        print("Monitor stopping...")
+        self.__exit_event.set()
+        self.__executor.shutdown(wait=False)  # we need to wait when all process is done
+        self.__update_thread.join()  #wait for thread will be complete
+        print("Monitor stopped")
 
 @timeit
 def main():
@@ -99,13 +136,17 @@ def main():
 
     print("Working...")
     site_list = settings_manager.get_site_list()
-    site_mon = SiteMonitor(site_list)
-    #site_mon.check()
-    site_mon.parallel_check()
+    site_mon = SiteMonitor(DEFAULT_UPDATE_PERIOD_SEC, site_list)
+
+    try:
+        site_mon.start()
+        while True:
+            time.sleep(1)
+            print(time.ctime(), " Main working... ")
+    except KeyboardInterrupt:
+        print(time.time(), "Main KeyboardInterrupt")
+        site_mon.stop()
+        print('---exit---')
 
 if __name__ == '__main__':
-    try:
         main()
-
-    except KeyboardInterrupt:
-        print('exit...')
