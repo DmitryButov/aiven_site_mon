@@ -61,11 +61,18 @@ python3 src/producer/site_mon.py
 
 ## Branches
 
-`master` - stable branch
+- `master` - stable branch
+- `develop` - mainstream branch for development, we merge new features into it
+- `feature/new_cool_feature` - for adding every new functionality please use a separate branch. We will merge it into develop branch after pull request.
 
-`develop` - mainstream branch for development, we merge new features into it
+## Knowledge base
 
-`feature/new_cool_feature` - for adding every new functionality please use a separate branch. We will merge it into `develop` branch after pull request.
+There are collected useful suitable articles and code examples, which were partially used for create current solution:
 
+- [Multiprocessing vs. Threading in Python: What you need to know](https://timber.io/blog/multiprocessing-vs-multithreading-in-python-what-you-need-to-know/)
 
+- [example from multiprocessing Pool and KeyboardInterrupt handling](https://github.com/jreese/multiprocessing-keyboardinterrupt)
 
+- [aiven-examples](https://github.com/aiven/aiven-examples)
+
+  
