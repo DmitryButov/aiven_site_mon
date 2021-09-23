@@ -79,7 +79,6 @@ def search_pattern(pattern, text):
     return result.group(0) if result else None
 
 def check_site(site):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)  #durty test!
     url = site.get_url()
     pattern = site.get_pattern()
     response = requests.get(url)
@@ -97,8 +96,8 @@ class SiteMonitor:
         self.__update_thread = threading.Thread(target=self.monitoring)
         self.__exit_event = threading.Event()
 
-        self.__executor = concurrent.futures.ProcessPoolExecutor()
-        #self.__executor = concurrent.futures.ThreadPoolExecutor()
+        #self.__executor = concurrent.futures.ProcessPoolExecutor()
+        self.__executor = concurrent.futures.ThreadPoolExecutor()
 
         #process pool executor gives
         #5.247151136398315 seconds
