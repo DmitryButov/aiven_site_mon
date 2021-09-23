@@ -4,7 +4,7 @@ import re, json
 import concurrent.futures, threading
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
-DEFAULT_UPDATE_PERIOD_SEC = 5
+DEFAULT_UPDATE_PERIOD_SEC = 3
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -57,20 +57,6 @@ class SettingsManager:
         return site_list
 
 
-
-
-# for testing we use non-class functions
-def test_init():
-    print("test initializer")
-
-def test_check(site):
-    try:
-        time.sleep(2)
-        print("inside test_check func")
-        return "test_check: {}".format(site.get_url())
-    except KeyboardInterrupt:
-        return "sub-process exit on key"
-
 def search_pattern(pattern, text):
     if not pattern:
         return False
@@ -95,23 +81,7 @@ class SiteMonitor:
         self.__update_period = update_period_sec
         self.__update_thread = threading.Thread(target=self.monitoring)
         self.__exit_event = threading.Event()
-
-        #self.__executor = concurrent.futures.ProcessPoolExecutor()
         self.__executor = concurrent.futures.ThreadPoolExecutor()
-
-        #process pool executor gives
-        #5.247151136398315 seconds
-        #thread pool executor gives
-        #3.9193339347839355 seconds
-
-        #ussue - wrong handling of KeyboardInterrupt in workers...
-        #TODO self.__executor = concurrent.futures.ProcessPoolExecutor(initializer=test_init)
-        #we need to use initializer for disabling handling signal,
-        #signal.signal(signal.SIGINT, signal.SIG_IGN)
-        #but currant local version of my Python (3.6.9) is not support full impl of ProcessPoolExecutor
-        #solutions:
-        #- switch to modern Python (or/and use virtual env)
-        #- use more control by multiprocessing Pool - see example on https://github.com/jreese/multiprocessing-keyboardinterrupt
 
     @timeit
     def check(self):
@@ -122,7 +92,7 @@ class SiteMonitor:
     @timeit
     def parallel_check(self):
         print("parallel_check started...")
-        info_it = self.__executor.map(check_site, self.__site_list)  # TODO use check_site after testing
+        info_it = self.__executor.map(check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
@@ -138,8 +108,8 @@ class SiteMonitor:
     def stop(self):
         print("Monitor stopping...")
         self.__exit_event.set()
-        self.__executor.shutdown(wait=True)  # we need to wait when all process is done
-        self.__update_thread.join()  #wait for thread will be complete
+        self.__executor.shutdown(wait=True)  # we need to wait when all workers are complete
+        self.__update_thread.join()          # wait for thread will be complete
         print("Monitor stopped")
 
 @timeit
@@ -159,7 +129,6 @@ def main():
             time.sleep(1)
             print(time.ctime(), " Main working... ")
     except KeyboardInterrupt:
-        print(time.time(), "Main KeyboardInterrupt")
         site_mon.stop()
         print('---exit---')
 
