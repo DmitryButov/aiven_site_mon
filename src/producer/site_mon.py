@@ -1,10 +1,10 @@
-import sys, os, time
+import sys, os, time, signal
 import requests
 import re, json
 import concurrent.futures, threading
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
-DEFAULT_UPDATE_PERIOD_SEC = 3
+DEFAULT_UPDATE_PERIOD_SEC = 5
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -79,19 +79,16 @@ def search_pattern(pattern, text):
     return result.group(0) if result else None
 
 def check_site(site):
-    try:
-        url = site.get_url()
-        pattern = site.get_pattern()
-        response = requests.get(url)
-        access_time = response.elapsed.total_seconds()
-        info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
-        search_result = search_pattern(pattern, response.text)
-        if search_result:
-            info += search_result
-        return info
-    except KeyboardInterrupt:
-        print(time.time(), "in subprocess KeyboardInterrupt")
-        return "<<<<fail>>>>"
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  #durty test!
+    url = site.get_url()
+    pattern = site.get_pattern()
+    response = requests.get(url)
+    access_time = response.elapsed.total_seconds()
+    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
+    search_result = search_pattern(pattern, response.text)
+    if search_result:
+        info += search_result
+    return info
 
 class SiteMonitor:
     def __init__(self, update_period_sec, site_list) -> None:
@@ -99,7 +96,15 @@ class SiteMonitor:
         self.__update_period = update_period_sec
         self.__update_thread = threading.Thread(target=self.monitoring)
         self.__exit_event = threading.Event()
+
         self.__executor = concurrent.futures.ProcessPoolExecutor()
+        #self.__executor = concurrent.futures.ThreadPoolExecutor()
+
+        #process pool executor gives
+        #5.247151136398315 seconds
+        #thread pool executor gives
+        #3.9193339347839355 seconds
+
         #ussue - wrong handling of KeyboardInterrupt in workers...
         #TODO self.__executor = concurrent.futures.ProcessPoolExecutor(initializer=test_init)
         #we need to use initializer for disabling handling signal,
@@ -118,7 +123,7 @@ class SiteMonitor:
     @timeit
     def parallel_check(self):
         print("parallel_check started...")
-        info_it = self.__executor.map(test_check, self.__site_list)  # TODO use check_site after testing
+        info_it = self.__executor.map(check_site, self.__site_list)  # TODO use check_site after testing
         for info in list(info_it):
             print(info)
 
@@ -134,7 +139,7 @@ class SiteMonitor:
     def stop(self):
         print("Monitor stopping...")
         self.__exit_event.set()
-        self.__executor.shutdown(wait=False)  # we need to wait when all process is done
+        self.__executor.shutdown(wait=True)  # we need to wait when all process is done
         self.__update_thread.join()  #wait for thread will be complete
         print("Monitor stopped")
 
