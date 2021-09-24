@@ -109,13 +109,13 @@ class SiteMonitor:
         if self.__processes > self.PROCESSES_MAX: self.__processes = self.PROCESSES_MAX
         self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
 
-    def check(self):
+    def __check(self):
         info_it = map(check_site_worker, self.__site_list)
         for info in list(info_it):
             print(info)
 
     @timeit
-    def parallel_check(self):
+    def __parallel_check(self):
         print("parallel_check started! (use {} processes)".format(self.__processes))
         info_it = self.__process_pool.map(check_site_worker, self.__site_list)
         for info in list(info_it):
@@ -124,7 +124,7 @@ class SiteMonitor:
     def monitoring(self):
         time.sleep(self.__update_period_sec)
         #self.check()
-        self.parallel_check()
+        self.__parallel_check()
 
     def stop(self):
         print("Monitor stopping...")
