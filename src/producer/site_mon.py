@@ -1,7 +1,7 @@
 import sys, os, time, signal
 import requests
 import re, json
-import concurrent.futures, threading
+import multiprocessing
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 DEFAULT_UPDATE_PERIOD_SEC = 3
@@ -11,7 +11,7 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        print("Debug: Func ""{}"" done at {} seconds".format(func.__name__, duration))
+        print("Debug: [pid={}] Func ""{}"" done at {} seconds".format(os.getpid(),  func.__name__, duration))
         return result
     return wrapper
 
@@ -67,11 +67,12 @@ def search_pattern(pattern, text):
     return result.group(0) if result else None
 
 #short, I/O resources used! -> can be split by threads!
-@timeit
+#@timeit
 def get_resp(url):
     response = requests.get(url)
     return response
 
+#worker
 def check_site(site):
     url = site.get_url()
     pattern = site.get_pattern()
@@ -81,7 +82,8 @@ def check_site(site):
     access_time = response.elapsed.total_seconds()
     info = '{:<70}{:<5}{:<7.3f}{}'.format(url, response.status_code, access_time, duration)
 
-    #search_result = search_pattern(pattern, response.text)  #TODO! need ProcessPoolExecutor if we use search_pattern!
+    #TODO! need Process instead Thread if we use search_pattern!
+    #search_result = search_pattern(pattern, response.text)
     #if search_result:
     #   info += search_result
 
@@ -91,7 +93,7 @@ class SiteMonitor:
     def __init__(self, site_list) -> None:
         self.__site_list = site_list
         self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
-        self.__executor = concurrent.futures.ThreadPoolExecutor()  #TODO! need ProcessPoolExecutor if we use search_pattern!
+        self.__process_pool = multiprocessing.Pool()
 
     def check(self):
         info_it = map(check_site, self.__site_list)
@@ -101,22 +103,23 @@ class SiteMonitor:
     @timeit
     def parallel_check(self):
         print("parallel_check started...")
-        info_it = self.__executor.map(check_site, self.__site_list)
+        info_it = self.__process_pool.map(check_site, self.__site_list)
         for info in list(info_it):
             print(info)
+
+    def start(self, update_period):
+        print("Monitor starting...")
+        self.__update_period = update_period
 
     def monitoring(self):
         time.sleep(self.__update_period)
         #self.check()
         self.parallel_check()
 
-    def start(self, update_period):
-        print("Monitor starting...")
-        self.__update_period = update_period
-
     def stop(self):
         print("Monitor stopping...")
-        self.__executor.shutdown(wait=True)  # we need to wait when all worker threads are complete
+        self.__process_pool.close()
+        self.__process_pool.join()
         print("Monitor stopped")
 
 @timeit
