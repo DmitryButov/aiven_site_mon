@@ -1,16 +1,17 @@
-import sys, os, time
+import sys, os, time, signal
 import requests
 import re, json
-import concurrent.futures
+import multiprocessing
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
+DEFAULT_UPDATE_PERIOD_SEC = 3
 
 def timeit(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        print("Debug: Func ""{}"" done at {} seconds".format(func.__name__, duration))
+        print("Debug: [pid={}] Func ""{}"" done at {:.3f} seconds".format(os.getpid(),  func.__name__, duration))
         return result
     return wrapper
 
@@ -55,40 +56,68 @@ class SettingsManager:
             print('Error: wrong settings')
         return site_list
 
+@timeit
+def search_pattern(pattern, text):
+    if not pattern:
+        return False
+    regex = re.compile(pattern)
+    result = regex.search(text)
+    return result.group(0) if result else None
+
+@timeit
+def get_resp(url):
+    response = requests.get(url)
+    return response
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    print("init process: ", os.getpid())
+
+def check_site_worker(site):
+    url = site.get_url()
+    pattern = site.get_pattern()
+    response = get_resp(url)
+    access_time = response.elapsed.total_seconds()
+    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
+
+    search_result = search_pattern(pattern, response.text)
+    if search_result:
+       info += search_result
+
+    return info
+
 class SiteMonitor:
     def __init__(self, site_list) -> None:
         self.__site_list = site_list
+        self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
+        self.__process_pool = multiprocessing.Pool(initializer=init_worker)
 
-    def __search_pattern(self, pattern, text):
-        if not pattern:
-            return False
-        regex = re.compile(pattern)
-        result = regex.search(text)
-        return result.group(0) if result else None
-
-    def check_site(self, site):
-        url = site.get_url()
-        pattern = site.get_pattern()
-        response = requests.get(url)
-        access_time = response.elapsed.total_seconds()
-        info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
-        search_result = self.__search_pattern(pattern, response.text)
-        if search_result:
-            info += search_result
-        return info
-
-    @timeit
     def check(self):
-        info_it = map(self.check_site, self.__site_list)
+        info_it = map(check_site, self.__site_list)
         for info in list(info_it):
             print(info)
 
     @timeit
     def parallel_check(self):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            info_it = executor.map(self.check_site, self.__site_list)
+        print("parallel_check started...")
+        info_it = self.__process_pool.map(check_site_worker, self.__site_list)
         for info in list(info_it):
             print(info)
+
+    def start(self, update_period):
+        print("Monitor starting...")
+        self.__update_period = update_period
+
+    def monitoring(self):
+        time.sleep(self.__update_period)
+        #self.check()
+        self.parallel_check()
+
+    def stop(self):
+        print("Monitor stopping...")
+        self.__process_pool.close()
+        self.__process_pool.join()
+        print("Monitor stopped")
 
 @timeit
 def main():
@@ -100,12 +129,14 @@ def main():
     print("Working...")
     site_list = settings_manager.get_site_list()
     site_mon = SiteMonitor(site_list)
-    #site_mon.check()
-    site_mon.parallel_check()
+
+    try:
+        site_mon.start(DEFAULT_UPDATE_PERIOD_SEC)
+        while True:
+            site_mon.monitoring()
+    except KeyboardInterrupt:
+        site_mon.stop()
+        print('---exit---')
 
 if __name__ == '__main__':
-    try:
         main()
-
-    except KeyboardInterrupt:
-        print('exit...')
