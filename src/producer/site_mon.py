@@ -57,6 +57,8 @@ class SettingsManager:
         return site_list
 
 
+#very very long - it's handling.... CPU resources used! -> need split by processes!
+@timeit
 def search_pattern(pattern, text):
     if not pattern:
         return False
@@ -64,26 +66,33 @@ def search_pattern(pattern, text):
     result = regex.search(text)
     return result.group(0) if result else None
 
+#short, I/O resources used! -> can be split by threads!
+@timeit
+def get_resp(url):
+    response = requests.get(url)
+    return response
+
 def check_site(site):
     url = site.get_url()
     pattern = site.get_pattern()
-    response = requests.get(url)
+    start_time = time.time()
+    response = get_resp(url)
+    duration = time.time() - start_time
     access_time = response.elapsed.total_seconds()
-    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
-    search_result = search_pattern(pattern, response.text)
-    if search_result:
-        info += search_result
+    info = '{:<70}{:<5}{:<7.3f}{}'.format(url, response.status_code, access_time, duration)
+
+    #search_result = search_pattern(pattern, response.text)  #TODO! need ProcessPoolExecutor if we use search_pattern!
+    #if search_result:
+    #   info += search_result
+
     return info
 
 class SiteMonitor:
-    def __init__(self, update_period_sec, site_list) -> None:
+    def __init__(self, site_list) -> None:
         self.__site_list = site_list
-        self.__update_period = update_period_sec
-        self.__update_thread = threading.Thread(target=self.monitoring)
-        self.__exit_event = threading.Event()
-        self.__executor = concurrent.futures.ThreadPoolExecutor()
+        self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
+        self.__executor = concurrent.futures.ThreadPoolExecutor()  #TODO! need ProcessPoolExecutor if we use search_pattern!
 
-    @timeit
     def check(self):
         info_it = map(check_site, self.__site_list)
         for info in list(info_it):
@@ -97,19 +106,17 @@ class SiteMonitor:
             print(info)
 
     def monitoring(self):
-        print("monitoring in thread...")
-        while not self.__exit_event.wait(self.__update_period):
-            self.parallel_check()
+        time.sleep(self.__update_period)
+        #self.check()
+        self.parallel_check()
 
-    def start(self):
+    def start(self, update_period):
         print("Monitor starting...")
-        self.__update_thread.start()
+        self.__update_period = update_period
 
     def stop(self):
         print("Monitor stopping...")
-        self.__exit_event.set()
-        self.__executor.shutdown(wait=True)  # we need to wait when all workers are complete
-        self.__update_thread.join()          # wait for thread will be complete
+        self.__executor.shutdown(wait=True)  # we need to wait when all worker threads are complete
         print("Monitor stopped")
 
 @timeit
@@ -121,13 +128,12 @@ def main():
 
     print("Working...")
     site_list = settings_manager.get_site_list()
-    site_mon = SiteMonitor(DEFAULT_UPDATE_PERIOD_SEC, site_list)
+    site_mon = SiteMonitor(site_list)
 
     try:
-        site_mon.start()
+        site_mon.start(DEFAULT_UPDATE_PERIOD_SEC)
         while True:
-            time.sleep(1)
-            print(time.ctime(), " Main working... ")
+            site_mon.monitoring()
     except KeyboardInterrupt:
         site_mon.stop()
         print('---exit---')
