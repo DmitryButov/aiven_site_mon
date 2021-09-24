@@ -96,10 +96,17 @@ def check_site_worker(site):
     return info
 
 class SiteMonitor:
-    def __init__(self, site_list, processes=os.cpu_count()) -> None:
+    UPDATE_MIN_SEC = 1
+    PROCESSES_MIN = 1
+    PROCESSES_MAX = 50
+
+    def __init__(self, site_list, update_period_sec, processes=os.cpu_count()) -> None:
         self.__site_list = site_list
-        self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
+        self.__update_period_sec = update_period_sec
         self.__processes = processes
+        if self.__update_period_sec < self.UPDATE_MIN_SEC: self.__update_period_sec = self.UPDATE_MIN_SEC
+        if self.__processes < self.PROCESSES_MIN: self.__processes = self.PROCESSES_MIN
+        if self.__processes > self.PROCESSES_MAX: self.__processes = self.PROCESSES_MAX
         self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
 
     def check(self):
@@ -114,12 +121,8 @@ class SiteMonitor:
         for info in list(info_it):
             print(info)
 
-    def start(self, update_period):
-        print("Monitor starting...")
-        self.__update_period = update_period
-
     def monitoring(self):
-        time.sleep(self.__update_period)
+        time.sleep(self.__update_period_sec)
         #self.check()
         self.parallel_check()
 
@@ -138,10 +141,9 @@ def main():
 
     print("Working...")
     site_list = settings_manager.get_site_list()
-    site_mon = SiteMonitor(site_list)
+    site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
 
     try:
-        site_mon.start(DEFAULT_UPDATE_PERIOD_SEC)
         while True:
             site_mon.monitoring()
     except KeyboardInterrupt:
