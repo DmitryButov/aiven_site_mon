@@ -11,7 +11,7 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        print("Debug: [pid={}] Func ""{}"" done at {} seconds".format(os.getpid(),  func.__name__, duration))
+        print("Debug: [pid={}] Func ""{}"" done at {:.3f} seconds".format(os.getpid(),  func.__name__, duration))
         return result
     return wrapper
 
@@ -56,8 +56,6 @@ class SettingsManager:
             print('Error: wrong settings')
         return site_list
 
-
-#very very long - it's handling.... CPU resources used! -> need split by processes!
 @timeit
 def search_pattern(pattern, text):
     if not pattern:
@@ -66,7 +64,6 @@ def search_pattern(pattern, text):
     result = regex.search(text)
     return result.group(0) if result else None
 
-#short, I/O resources used! -> can be split by threads!
 @timeit
 def get_resp(url):
     response = requests.get(url)
@@ -76,15 +73,12 @@ def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     print("init process: ", os.getpid())
 
-#worker
-def check_site(site):
+def check_site_worker(site):
     url = site.get_url()
     pattern = site.get_pattern()
-    start_time = time.time()
     response = get_resp(url)
-    duration = time.time() - start_time
     access_time = response.elapsed.total_seconds()
-    info = '{:<70}{:<5}{:<7.3f}{}'.format(url, response.status_code, access_time, duration)
+    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
 
     search_result = search_pattern(pattern, response.text)
     if search_result:
@@ -106,7 +100,7 @@ class SiteMonitor:
     @timeit
     def parallel_check(self):
         print("parallel_check started...")
-        info_it = self.__process_pool.map(check_site, self.__site_list)
+        info_it = self.__process_pool.map(check_site_worker, self.__site_list)
         for info in list(info_it):
             print(info)
 
