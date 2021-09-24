@@ -65,8 +65,12 @@ def search_pattern(pattern, text):
     return result.group(0) if result else None
 
 @timeit
-def get_resp(url):
-    response = requests.get(url)
+def request_to_url(url):
+    try:
+        response = requests.get(url)
+    except (requests.exceptions.ConnectionError, ConnectionResetError):
+        print("ConnectionError for url: ", url)
+        return None
     return response
 
 def init_worker():
@@ -75,7 +79,10 @@ def init_worker():
 def check_site_worker(site):
     url = site.get_url()
     pattern = site.get_pattern()
-    response = get_resp(url)
+    response = request_to_url(url)
+    if not response:
+        return None
+
     access_time = response.elapsed.total_seconds()
     info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
 
@@ -93,7 +100,7 @@ class SiteMonitor:
         self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
 
     def check(self):
-        info_it = map(check_site, self.__site_list)
+        info_it = map(check_site_worker, self.__site_list)
         for info in list(info_it):
             print(info)
 
