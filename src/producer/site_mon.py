@@ -67,10 +67,14 @@ def search_pattern(pattern, text):
     return result.group(0) if result else None
 
 #short, I/O resources used! -> can be split by threads!
-#@timeit
+@timeit
 def get_resp(url):
     response = requests.get(url)
     return response
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    print("init process: ", os.getpid())
 
 #worker
 def check_site(site):
@@ -93,7 +97,7 @@ class SiteMonitor:
     def __init__(self, site_list) -> None:
         self.__site_list = site_list
         self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
-        self.__process_pool = multiprocessing.Pool()
+        self.__process_pool = multiprocessing.Pool(initializer=init_worker)
 
     def check(self):
         info_it = map(check_site, self.__site_list)
