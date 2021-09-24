@@ -86,10 +86,9 @@ def check_site(site):
     access_time = response.elapsed.total_seconds()
     info = '{:<70}{:<5}{:<7.3f}{}'.format(url, response.status_code, access_time, duration)
 
-    #TODO! need Process instead Thread if we use search_pattern!
-    #search_result = search_pattern(pattern, response.text)
-    #if search_result:
-    #   info += search_result
+    search_result = search_pattern(pattern, response.text)
+    if search_result:
+       info += search_result
 
     return info
 
