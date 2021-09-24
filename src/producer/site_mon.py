@@ -59,10 +59,13 @@ class SettingsManager:
 @timeit
 def search_pattern(pattern, text):
     if not pattern:
-        return False
+        return None
     regex = re.compile(pattern)
+    if regex.groups != 1:
+        return "<wrong pattern>"
+
     result = regex.search(text)
-    return result.group(0) if result else None
+    return result.group(1) if result else None
 
 @timeit
 def request_to_url(url):
