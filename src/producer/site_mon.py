@@ -71,7 +71,6 @@ def get_resp(url):
 
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    print("init process: ", os.getpid())
 
 def check_site_worker(site):
     url = site.get_url()
@@ -87,10 +86,11 @@ def check_site_worker(site):
     return info
 
 class SiteMonitor:
-    def __init__(self, site_list) -> None:
+    def __init__(self, site_list, processes=os.cpu_count()) -> None:
         self.__site_list = site_list
         self.__update_period = DEFAULT_UPDATE_PERIOD_SEC
-        self.__process_pool = multiprocessing.Pool(initializer=init_worker)
+        self.__processes = processes
+        self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
 
     def check(self):
         info_it = map(check_site, self.__site_list)
@@ -99,7 +99,7 @@ class SiteMonitor:
 
     @timeit
     def parallel_check(self):
-        print("parallel_check started...")
+        print("parallel_check started! (use {} processes)".format(self.__processes))
         info_it = self.__process_pool.map(check_site_worker, self.__site_list)
         for info in list(info_it):
             print(info)
