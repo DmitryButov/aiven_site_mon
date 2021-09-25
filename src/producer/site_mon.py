@@ -1,4 +1,5 @@
 import sys, os, time, signal
+import logging
 import requests
 import re, json
 import multiprocessing
@@ -6,12 +7,24 @@ import multiprocessing
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 DEFAULT_UPDATE_PERIOD_SEC = 3
 
+#For developing only! - Add TRACE log level and Logger.trace() method.
+def _create_trace_loglevel(logging):
+    logging.TRACE = 5
+    logging.addLevelName(logging.TRACE, "TRACE")
+    def _trace(logger, message, *args, **kwargs):
+        if logger.isEnabledFor(logging.TRACE):
+            logger._log(logging.TRACE, message, args, **kwargs)
+    logging.Logger.trace = _trace
+
+_create_trace_loglevel(logging)
+logger = logging.getLogger().getChild("site_mon")
+
 def timeit(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        print("Debug: [pid={}] Func ""{}"" done at {:.3f} seconds".format(os.getpid(),  func.__name__, duration))
+        logger.trace("Func ""{}"" done at {:.3f} seconds".format(func.__name__, duration))
         return result
     return wrapper
 
@@ -35,15 +48,15 @@ class SettingsManager:
 
     def load(self, settings_filename):
         filename = os.path.join(sys.path[0], settings_filename)
-        print('load settings from file: ' + filename)
+        logger.debug('load settings from file: ' + filename)
         if not os.path.isfile(filename):
-            print('Error: no settings file found!')
+            logger.error('no settings file found!')
             return False
         try:
             with open(filename, "r") as read_file:
                 self.__settings = json.load(read_file)
         except json.decoder.JSONDecodeError:
-            print("Error: wrong settings file format")
+            logger.error("wrong settings file format")
             return False
         return True
 
@@ -53,7 +66,7 @@ class SettingsManager:
             for item in self.__settings['sites']:
                 site_list.append(Site(item['url'], item['pattern']))
         except:
-            print('Error: wrong settings')
+            logger.warning('wrong site list content')
         return site_list
 
 @timeit
@@ -72,22 +85,24 @@ def request_to_url(url):
     try:
         response = requests.get(url)
     except (requests.exceptions.ConnectionError, ConnectionResetError):
-        print("ConnectionError for url: ", url)
+        logger.error("Connection error for url: ", url)
         return None
     return response
 
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+    multiprocessing.current_process().name = "Worker-{}".format(os.getpid())
 
 def check_site_worker(site):
     url = site.get_url()
     pattern = site.get_pattern()
     response = request_to_url(url)
     if not response:
-        return None
+        return None   #TODO! fill info when connection is fail!
 
     info = {}
     info['url'] = url
+
     info['status_code'] = response.status_code
     info['access_time'] = response.elapsed.total_seconds()
 
@@ -97,14 +112,13 @@ def check_site_worker(site):
 
 def info_handler(list):
     for info in list:
-        #TODO print as table
         line = '{:<70}{:<5}{:<7.3f}{}'.format(
             info['url'],
             info['status_code'],
             info['access_time'],
             info['search_result'] if info['search_result'] else ""
             )
-        print(line)
+        logger.info(line)
         #TODO send in one packet info about sites to Kafka
 
 
@@ -123,20 +137,21 @@ class SiteMonitor:
         if self.__processes > self.PROCESSES_MAX: self.__processes = self.PROCESSES_MAX
         self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
 
+    #for debug purposes
     def __check(self):
         info_it = map(check_site_worker, self.__site_list)
         for info in list(info_it):
-            print(info)
+             logger.info(info)
 
     @timeit
     def __parallel_check(self):
-        print("parallel_check started! (use {} processes)...".format(self.__processes))
+        logger.debug("parallel_check started! (use {} processes)...".format(self.__processes))
         try:
             async_info_it = self.__process_pool.map_async(check_site_worker, self.__site_list)
             info_it = async_info_it.get(self.MAX_PARSING_TIME_SEC)
             info_handler(list(info_it))
         except multiprocessing.TimeoutError:
-            print("Error: parsing timeout is achieved!")
+            logger.debug("Error: parsing timeout is achieved!")
 
     def monitoring(self):
         time.sleep(self.__update_period_sec)
@@ -144,19 +159,31 @@ class SiteMonitor:
         self.__parallel_check()
 
     def stop(self):
-        print("Monitor stopping...")
+        logger.info("Monitor stopping...")
         self.__process_pool.close()
         self.__process_pool.join()
-        print("Monitor stopped")
+        logger.info("Monitor stopped")
+
+def init_logger(level, show_timemark=True):
+    logger.setLevel(level)
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    timemark = '%(asctime)s ' if show_timemark else ''
+    format_str = timemark + '%(name)s %(levelname)-8s %(processName)-16s: %(message)s'
+    formatter = logging.Formatter(format_str)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
 
 @timeit
 def main():
-    print("Load settings")
+    init_logger(logging.TRACE, show_timemark=False)
+    logger.info("Load settings")
     settings_manager = SettingsManager()
     if not settings_manager.load(DEFAULT_SETTINGS_FILENAME):
         return
 
-    print("Working...")
+    logger.info("Working...")
     site_list = settings_manager.get_site_list()
     site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
 
@@ -165,7 +192,6 @@ def main():
             site_mon.monitoring()
     except KeyboardInterrupt:
         site_mon.stop()
-        print('---exit---')
 
 if __name__ == '__main__':
         main()

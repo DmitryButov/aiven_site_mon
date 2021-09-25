@@ -34,11 +34,11 @@
         },
         {
             "url": "https://postgrespro.ru",
-            "pattern": ""
+            "pattern": "<h1>(.+)</h1>"
         },
         {
             "url": "https://www.youtube.com/watch?v=YKXCRs_P-xU",
-            "pattern": ""
+            "ptn": ""
         },
         {
             "url": "https://medium.com",
