@@ -40,7 +40,7 @@ class SettingsManager:
 
     def load(self, settings_filename):
         filename = os.path.join(sys.path[0], settings_filename)
-        logger.debug('load settings from file: ' + filename)
+        logger.debug('load settings from file: {}'.format(filename))
         if not os.path.isfile(filename):
             logger.error('no settings file found!')
             return False
@@ -77,7 +77,7 @@ def request_to_url(url):
     try:
         response = requests.get(url)
     except (requests.exceptions.ConnectionError, ConnectionResetError):
-        logger.error("Connection error for url: ", url)
+        logger.error("Connection error for url: {}".format(url))
         return None
     return response
 
@@ -89,23 +89,26 @@ def check_site_worker(site):
     url = site.get_url()
     pattern = site.get_pattern()
     response = request_to_url(url)
-    if not response:
-        return None   #TODO! fill info when connection is fail!
-
     info = {}
     info['url'] = url
+    if response:
+        info['status'] = 'done'
+        info['status_code'] = response.status_code
+        info['access_time'] = response.elapsed.total_seconds()
+        info['search_result'] = search_pattern(pattern, response.text)
+    else:
+        info['status'] = 'error'
+        info['status_code'] = 0
+        info['access_time'] = 0
+        info['search_result'] = None
 
-    info['status_code'] = response.status_code
-    info['access_time'] = response.elapsed.total_seconds()
-
-    search_result = search_pattern(pattern, response.text)
-    info['search_result'] = search_result
     return info
 
 def info_handler(list):
     for info in list:
-        line = '{:<70}{:<5}{:<7.3f}{}'.format(
+        line = '{:<70}{:<7}{:<5}{:<7.3f}{}'.format(
             info['url'],
+            info['status'],
             info['status_code'],
             info['access_time'],
             info['search_result'] if info['search_result'] else ""
@@ -143,7 +146,7 @@ class SiteMonitor:
             info_it = async_info_it.get(self.MAX_PARSING_TIME_SEC)
             info_handler(list(info_it))
         except multiprocessing.TimeoutError:
-            logger.debug("Error: parsing timeout is achieved!")
+            logger.error("Error: parsing timeout is achieved!")
 
     def monitoring(self):
         time.sleep(self.__update_period_sec)
