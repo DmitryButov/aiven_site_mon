@@ -4,19 +4,11 @@ import requests
 import re, json
 import multiprocessing
 
+import site_mon_logger
+
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 DEFAULT_UPDATE_PERIOD_SEC = 3
 
-#For developing only! - Add TRACE log level and Logger.trace() method.
-def _create_trace_loglevel(logging):
-    logging.TRACE = 5
-    logging.addLevelName(logging.TRACE, "TRACE")
-    def _trace(logger, message, *args, **kwargs):
-        if logger.isEnabledFor(logging.TRACE):
-            logger._log(logging.TRACE, message, args, **kwargs)
-    logging.Logger.trace = _trace
-
-_create_trace_loglevel(logging)
 logger = logging.getLogger().getChild("site_mon")
 
 def timeit(func):
@@ -164,20 +156,12 @@ class SiteMonitor:
         self.__process_pool.join()
         logger.info("Monitor stopped")
 
-def init_logger(level, show_timemark=True):
-    logger.setLevel(level)
-    handler = logging.StreamHandler()
-    handler.setLevel(level)
-    timemark = '%(asctime)s ' if show_timemark else ''
-    format_str = timemark + '%(name)s %(levelname)-8s %(processName)-16s: %(message)s'
-    formatter = logging.Formatter(format_str)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
-
 @timeit
 def main():
-    init_logger(logging.TRACE, show_timemark=False)
+    site_mon_logger.create_trace_loglevel(logging)
+    site_mon_logger.init(logger, logging.TRACE, show_timemark=False)
+
+    #init_logger(logging.TRACE, show_timemark=False)
     logger.info("Load settings")
     settings_manager = SettingsManager()
     if not settings_manager.load(DEFAULT_SETTINGS_FILENAME):
