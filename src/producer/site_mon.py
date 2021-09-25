@@ -1,10 +1,13 @@
 import sys, os, time, signal
+import logging
 import requests
 import re, json
 import multiprocessing
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
 DEFAULT_UPDATE_PERIOD_SEC = 3
+
+logger = logging.getLogger().getChild("site_mon")
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -149,14 +152,24 @@ class SiteMonitor:
         self.__process_pool.join()
         print("Monitor stopped")
 
+def init_logger(level):
+    logger.setLevel(level)
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s [%(processName)s]: %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
 @timeit
 def main():
-    print("Load settings")
+    init_logger(logging.DEBUG)
+    logger.info("Load settings")
     settings_manager = SettingsManager()
     if not settings_manager.load(DEFAULT_SETTINGS_FILENAME):
         return
 
-    print("Working...")
+    logger.info("Working...")
     site_list = settings_manager.get_site_list()
     site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
 
