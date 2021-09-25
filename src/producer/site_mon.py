@@ -86,14 +86,27 @@ def check_site_worker(site):
     if not response:
         return None
 
-    access_time = response.elapsed.total_seconds()
-    info = '{:<70}{:<5}{:<7.3f}'.format(url, response.status_code, access_time)
+    info = {}
+    info['url'] = url
+    info['status_code'] = response.status_code
+    info['access_time'] = response.elapsed.total_seconds()
 
     search_result = search_pattern(pattern, response.text)
-    if search_result:
-       info += search_result
-
+    info['search_result'] = search_result
     return info
+
+def info_handler(list):
+    for info in list:
+        #TODO print as table
+        line = '{:<70}{:<5}{:<7.3f}{}'.format(
+            info['url'],
+            info['status_code'],
+            info['access_time'],
+            info['search_result'] if info['search_result'] else ""
+            )
+        print(line)
+        #TODO send in one packet info about sites to Kafka
+
 
 class SiteMonitor:
     UPDATE_MIN_SEC = 1
@@ -117,12 +130,11 @@ class SiteMonitor:
 
     @timeit
     def __parallel_check(self):
-        print("parallel_check started! (use {} processes)".format(self.__processes))
+        print("parallel_check started! (use {} processes)...".format(self.__processes))
         try:
             async_info_it = self.__process_pool.map_async(check_site_worker, self.__site_list)
             info_it = async_info_it.get(self.MAX_PARSING_TIME_SEC)
-            for info in list(info_it):
-                print(info)
+            info_handler(list(info_it))
         except multiprocessing.TimeoutError:
             print("Error: parsing timeout is achieved!")
 
