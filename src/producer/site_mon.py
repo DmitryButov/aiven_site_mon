@@ -99,6 +99,7 @@ class SiteMonitor:
     UPDATE_MIN_SEC = 1
     PROCESSES_MIN = 1
     PROCESSES_MAX = 50
+    MAX_PARSING_TIME_SEC = 180
 
     def __init__(self, site_list, update_period_sec, processes=os.cpu_count()) -> None:
         self.__site_list = site_list
@@ -117,9 +118,13 @@ class SiteMonitor:
     @timeit
     def __parallel_check(self):
         print("parallel_check started! (use {} processes)".format(self.__processes))
-        info_it = self.__process_pool.map(check_site_worker, self.__site_list)
-        for info in list(info_it):
-            print(info)
+        try:
+            async_info_it = self.__process_pool.map_async(check_site_worker, self.__site_list)
+            info_it = async_info_it.get(self.MAX_PARSING_TIME_SEC)
+            for info in list(info_it):
+                print(info)
+        except multiprocessing.TimeoutError:
+            print("Error: parsing timeout is achieved!")
 
     def monitoring(self):
         time.sleep(self.__update_period_sec)
