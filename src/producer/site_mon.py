@@ -7,7 +7,7 @@ import multiprocessing
 import site_mon_logger
 
 DEFAULT_SETTINGS_FILENAME = "settings.json"
-DEFAULT_UPDATE_PERIOD_SEC = 3
+DEFAULT_UPDATE_PERIOD_SEC = 5
 
 logger = logging.getLogger().getChild("site_mon")
 
@@ -117,6 +117,13 @@ def info_handler(list):
         #TODO send in one packet info about sites to Kafka
 
 
+def test_worker(url, working_time):
+    init_worker()
+    proc_name = multiprocessing.current_process().name
+    logger.info('Task inside {} for {} with working_time {} started'.format(proc_name, url, working_time))
+    time.sleep(working_time)
+    logger.info('------------ Task inside {} for {} done'.format(proc_name, url))
+
 class SiteMonitor:
     UPDATE_MIN_SEC = 1
     PROCESSES_MIN = 1
@@ -131,6 +138,15 @@ class SiteMonitor:
         if self.__processes < self.PROCESSES_MIN: self.__processes = self.PROCESSES_MIN
         if self.__processes > self.PROCESSES_MAX: self.__processes = self.PROCESSES_MAX
         self.__process_pool = multiprocessing.Pool(self.__processes, initializer=init_worker)
+
+
+        #debug
+        self.__dbg_tasks_cnt = 1
+        self.__dbg_site_index = 0
+        self.__dbg_urls = [ 'url_A', 'url_B', 'url_C', 'url_D', 'url_E' ]
+        self.__dbg_work_times = [ 3, 1, 2, 10, 0.5]
+        self.__dbg_task_interval = self.__update_period_sec / len(self.__dbg_urls)
+        logger.debug('dbg_task_interva = {}'.format(self.__dbg_task_interval))
 
     #for debug purposes
     def __check(self):
@@ -149,20 +165,29 @@ class SiteMonitor:
             logger.error("Error: parsing timeout is achieved!")
 
     def monitoring(self):
-        time.sleep(self.__update_period_sec)
-        #self.check()
-        self.__parallel_check()
+        idx = self.__dbg_site_index
+
+        logger.debug('before sleep {}'.format(self.__dbg_tasks_cnt))
+        time.sleep(self.__dbg_task_interval)
+        self.__process_pool.apply_async(
+            test_worker, (self.__dbg_urls[idx], self.__dbg_work_times[idx]) )
+        logger.debug('after async apply {}'.format(self.__dbg_tasks_cnt))
+
+        self.__dbg_tasks_cnt += 1
+        idx += 1
+        if idx == len(self.__dbg_urls): idx = 0
+        self.__dbg_site_index = idx
 
     def stop(self):
         logger.info("Monitor stopping...")
-        self.__process_pool.close()
+        self.__process_pool.terminate()
         self.__process_pool.join()
         logger.info("Monitor stopped")
 
 @timeit
 def main():
     site_mon_logger.create_trace_loglevel(logging)
-    site_mon_logger.init(logger, logging.TRACE, show_timemark=True)
+    site_mon_logger.init(logger, logging.INFO, show_timemark=True)
 
     #init_logger(logging.TRACE, show_timemark=False)
     logger.info("Load settings")
