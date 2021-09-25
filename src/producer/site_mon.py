@@ -159,7 +159,7 @@ class SiteMonitor:
 @timeit
 def main():
     site_mon_logger.create_trace_loglevel(logging)
-    site_mon_logger.init(logger, logging.TRACE, show_timemark=False)
+    site_mon_logger.init(logger, logging.TRACE, show_timemark=True)
 
     #init_logger(logging.TRACE, show_timemark=False)
     logger.info("Load settings")
