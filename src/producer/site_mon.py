@@ -14,7 +14,7 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        logger.debug("[pid={}] Func ""{}"" done at {:.3f} seconds".format(os.getpid(),  func.__name__, duration))
+        logger.debug("Func ""{}"" done at {:.3f} seconds".format(func.__name__, duration))
         return result
     return wrapper
 
@@ -81,6 +81,7 @@ def request_to_url(url):
 
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+    multiprocessing.current_process().name = "Worker-{}".format(os.getpid())
 
 def check_site_worker(site):
     url = site.get_url()
@@ -153,12 +154,14 @@ class SiteMonitor:
         self.__process_pool.join()
         logger.info("Monitor stopped")
 
+
+
 def init_logger(level, show_timemark=True):
     logger.setLevel(level)
     handler = logging.StreamHandler()
     handler.setLevel(level)
     timemark = '%(asctime)s ' if show_timemark else ''
-    format_str = timemark + '%(name)s %(levelname)-8s [%(processName)-16s]: %(message)s'
+    format_str = timemark + '%(name)s %(levelname)-8s %(processName)-16s: %(message)s'
     formatter = logging.Formatter(format_str)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
