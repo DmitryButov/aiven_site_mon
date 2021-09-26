@@ -20,7 +20,7 @@ The website monitor perform the periodically checks:
 ## Quick Start
 
 ```sh
-python3 src/producer/site_mon.py
+python3 src/aiven_site_mon/producer/site_mon.py
 ```
 
 ## Getting Started Guide
