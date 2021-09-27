@@ -2,7 +2,7 @@
 import logging
 
 #For developing only! - Add TRACE log level and Logger.trace() method.
-def create_trace_loglevel(logging):
+def create_trace_level(logging):
     logging.TRACE = 5
     logging.addLevelName(logging.TRACE, "TRACE")
     def _trace(logger, message, *args, **kwargs):
