@@ -40,3 +40,5 @@ Or we can run by using python (this is a single way to run for Windows)
 ```bash
 python3 -m aiven_site_mon
 ```
+
+>  Note: For developing it's recommended to use [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
