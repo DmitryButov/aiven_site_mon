@@ -16,6 +16,9 @@ def __parse_console_args():
                         help='set log level: TRACE, DEBUG, INFO, WARNING, etc.')
     return parser.parse_args()
 
+def __monitoring():
+    Logger.info('TODO monitoring')
+
 @timeit
 def main():
     args = __parse_console_args()
@@ -26,15 +29,27 @@ def main():
     if not settings_manager.load(args.settings):
         return
 
-    #simple check for settings:
-    site_list = settings_manager.get_site_list()
-    for item in site_list:
-        Logger.trace(item)
+    if args.mode == 'console':
+        site_list = settings_manager.get_site_list()
+        for item in site_list:
+            Logger.trace(item)
+        process_func = __monitoring
+    elif args.mode == 'kafka-producer':
+        Logger.warning('kafka-producer mode is under developing')
+        #process_func = __monitoring2
+        return
+    elif args.mode == 'kafka-consumer':
+        Logger.warning('kafka-consumer mode is under developing')
+        #process_func = __listener
+        return
+    else:
+        Logger.error('Wrong operation mode!')
+        return
 
     Logger.info('TODO Working...')
     try:
         while True:
-            Logger.info('TODO monitoring')
+            process_func()
             time.sleep(1)
     except KeyboardInterrupt:
         #stop
