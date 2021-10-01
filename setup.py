@@ -10,10 +10,9 @@ setup(
     license='MIT',
     packages=find_packages(where='src'),
     package_dir={"": "src"},
-    scripts=['scripts/aiven_site_mon'],
     entry_points={
         'console_scripts': [
-            'aiven_site_mon_entry_test=aiven_site_mon.common.console_app:main',
+            'aiven_site_mon=aiven_site_mon.common.console_app:main',
         ],
     },
 )
