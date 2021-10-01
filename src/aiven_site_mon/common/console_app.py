@@ -2,6 +2,7 @@ import time
 import argparse
 from . import APP_VERSION
 from . import log_manager, Logger
+from . import timeit
 from .settings_manager import SettingsManager
 
 def __parse_console_args():
@@ -15,6 +16,7 @@ def __parse_console_args():
                         help='set log level: TRACE, DEBUG, INFO, WARNING, etc.')
     return parser.parse_args()
 
+@timeit
 def main():
     args = __parse_console_args()
     log_manager.create_trace_level()            #useful for developing

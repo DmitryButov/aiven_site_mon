@@ -21,3 +21,12 @@ class Site:
 
     def __str__(self):
         return self.__url
+
+def timeit(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        duration = time.time() - start_time
+        Logger.trace("Function ""{}"" done at {:.3f} seconds".format(func.__name__, duration))
+        return result
+    return wrapper
