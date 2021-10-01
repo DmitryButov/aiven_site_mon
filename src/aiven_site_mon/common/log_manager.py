@@ -1,4 +1,3 @@
-
 import logging
 
 #For developing only! - Add TRACE log level and Logger.trace() method.
