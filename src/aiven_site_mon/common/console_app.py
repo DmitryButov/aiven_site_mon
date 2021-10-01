@@ -4,6 +4,10 @@ from . import APP_VERSION
 from . import log_manager, Logger
 from . import timeit
 from .settings_manager import SettingsManager
+from aiven_site_mon.producer import SiteMonitor
+
+#TODO read from settings.json
+DEFAULT_UPDATE_PERIOD_SEC = 3
 
 def __parse_console_args():
     parser = argparse.ArgumentParser()
@@ -15,9 +19,6 @@ def __parse_console_args():
     parser.add_argument('-l', '--log_level', default='INFO', metavar='<level>',
                         help='set log level: TRACE, DEBUG, INFO, WARNING, etc.')
     return parser.parse_args()
-
-def __monitoring():
-    Logger.info('TODO monitoring')
 
 @timeit
 def main():
@@ -31,26 +32,29 @@ def main():
 
     if args.mode == 'console':
         site_list = settings_manager.get_site_list()
+        site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
         for item in site_list:
             Logger.trace(item)
-        process_func = __monitoring
+        process_func = site_mon.monitoring
+        stop_func = site_mon.stop
     elif args.mode == 'kafka-producer':
         Logger.warning('kafka-producer mode is under developing')
-        #process_func = __monitoring2
+        #process_func = monitoring2
+        #stop_func = stop2
         return
     elif args.mode == 'kafka-consumer':
         Logger.warning('kafka-consumer mode is under developing')
-        #process_func = __listener
+        #process_func = listener
+        #stop_func = stop3
         return
     else:
         Logger.error('Wrong operation mode!')
         return
 
-    Logger.info('TODO Working...')
+    Logger.trace('Start working...')
     try:
         while True:
             process_func()
-            time.sleep(1)
     except KeyboardInterrupt:
-        #stop
-        Logger.info('exit')
+        stop_func()
+        Logger.trace('exit')
