@@ -21,10 +21,10 @@ class SettingsManager:
             return False
         return True
 
-    def get_site_list(self):
+    def get_procuder_site_list(self):
         site_list = []
         try:
-            for item in self.__settings['sites']:
+            for item in self.__settings['producer']['sites']:
                 site_list.append(Site(item['url'], item['pattern']))
         except:
             Logger.warning('wrong site list content')

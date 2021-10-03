@@ -20,6 +20,14 @@ def __parse_console_args():
                         help='set log level: TRACE, DEBUG, INFO, WARNING, etc.')
     return parser.parse_args()
 
+def activate_console_producer(settings_manager):
+    site_list = settings_manager.get_procuder_site_list()
+    if len(site_list) == 0:
+        Logger.warning("site list can't be empty")
+        return (False, None, None)
+    site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
+    return (True, site_mon.monitoring, site_mon.stop)
+
 @timeit
 def main():
     args = __parse_console_args()
@@ -31,22 +39,24 @@ def main():
         return
 
     if args.mode == 'console':
-        site_list = settings_manager.get_site_list()
-        site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
-        process_func = site_mon.monitoring
-        stop_func = site_mon.stop
+        activate_status, process_func, stop_func = activate_console_producer(settings_manager)
     elif args.mode == 'kafka-producer':
         Logger.warning('kafka-producer mode is under developing')
+        activate_status = False
         #process_func = monitoring2
         #stop_func = stop2
         return
     elif args.mode == 'kafka-consumer':
         Logger.warning('kafka-consumer mode is under developing')
+        activate_status = False
         #process_func = listener
         #stop_func = stop3
         return
     else:
         Logger.error('Wrong operation mode!')
+        return
+
+    if not activate_status:
         return
 
     Logger.trace('Start working...')
