@@ -11,9 +11,16 @@ class SettingsManager:
         self.__settings = {}
 
     @staticmethod
-    def __print_warning(param_name, default_value):
+    def __print_warning(param, default_value):
         Logger.warning('Wrong "{}" value. Please, check settings file. Reset to default ({})'
-                        .format(param_name, default_value))
+                        .format(param, default_value))
+
+    def __get_producer_param(self, param, default):
+        if not 'producer' in self.__settings:
+            Logger.warning('Wrong settings. No producer settings')
+            return None
+        producer = self.__settings['producer']
+        return producer[param] if param in producer else default
 
     def load(self, filename):
         path = pathlib.Path(filename)
@@ -21,7 +28,6 @@ class SettingsManager:
         if not path.is_file():
             Logger.error('Settings file "{}" is not exist!'.format(path))
             return False
-
         try:
             with open(filename, "r") as read_file:
                 self.__settings = json.load(read_file)
@@ -30,42 +36,39 @@ class SettingsManager:
             return False
         return True
 
-    def get_procuder_site_list(self):
+    def get_producer_site_list(self):
         site_list = []
+        if not 'producer' in self.__settings:
+            Logger.warning('Wrong settings. No producer settings')
+            return site_list
         try:
             for item in self.__settings['producer']['sites']:
                 site_list.append(Site(item['url'], item['pattern']))
         except:
-            Logger.warning('wrong site list content')
+            Logger.warning('Wrong site list content for producer')
         return site_list
 
     def get_update_period(self):
-        producer = self.__settings['producer']
-        if not 'update_period_sec' in producer:
+        param = 'update_period_sec'
+        value = self.__get_producer_param(param, _DEFAULT_UPDATE_PERIOD_SEC)
+        if not isinstance(value, (int, float)) or value < 0:
+            self.__print_warning(param, _DEFAULT_UPDATE_PERIOD_SEC)
             return _DEFAULT_UPDATE_PERIOD_SEC
-        val = producer['update_period_sec']
-        if not isinstance(val, (int, float)) or val < 0:
-            self.__print_warning('update_period_sec', _DEFAULT_UPDATE_PERIOD_SEC)
-            return _DEFAULT_UPDATE_PERIOD_SEC
-        return val
+        return value
 
     def get_load_balancing_policy(self):
-        producer = self.__settings['producer']
+        param = 'load_balancing_policy'
         allowed_policies = ['round_robin', 'compressed']
-        if not 'load_balancing_policy' in producer:
+        value = self.__get_producer_param(param, _DEFAULT_LOAD_BALANCING_POLICY)
+        if not value in allowed_policies:
+            self.__print_warning(param, _DEFAULT_LOAD_BALANCING_POLICY)
             return _DEFAULT_LOAD_BALANCING_POLICY
-        if producer['load_balancing_policy'] in allowed_policies:
-            return producer['load_balancing_policy']
-        else:
-            self.__print_warning('load_balancing_policy', _DEFAULT_LOAD_BALANCING_POLICY)
-            return _DEFAULT_LOAD_BALANCING_POLICY
+        return value
 
     def get_process_count(self):
-        producer = self.__settings['producer']
-        if not 'process_count' in producer:
+        param = 'process_count'
+        value = self.__get_producer_param(param, _DEFAULT_PROCESS_COUNT)
+        if not isinstance(value, int) or value < 1:
+            self.__print_warning(param, _DEFAULT_PROCESS_COUNT)
             return _DEFAULT_PROCESS_COUNT
-        val = producer['process_count']
-        if not isinstance(val, int) or val < 1:
-            self.__print_warning('process_count', _DEFAULT_PROCESS_COUNT)
-            return _DEFAULT_PROCESS_COUNT
-        return val
+        return value

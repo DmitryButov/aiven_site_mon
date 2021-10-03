@@ -20,7 +20,7 @@ def __parse_console_args():
     return parser.parse_args()
 
 def activate_console_producer(settings_manager):
-    site_list = settings_manager.get_procuder_site_list()
+    site_list = settings_manager.get_producer_site_list()
     if len(site_list) == 0:
         Logger.warning("site list can't be empty")
         return (False, None, None)
