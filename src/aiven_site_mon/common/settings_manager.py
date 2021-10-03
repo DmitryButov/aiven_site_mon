@@ -1,13 +1,19 @@
-import pathlib
+import os, pathlib
 import json
 from . import Logger, Site
 
-DEFAULT_UPDATE_PERIOD_SEC = 3
-DEFAULT_LOAD_BALANCING_POLICY = 'round_robin'
+_DEFAULT_UPDATE_PERIOD_SEC = 3
+_DEFAULT_LOAD_BALANCING_POLICY = 'round_robin'
+_DEFAULT_PROCESS_COUNT= os.cpu_count()
 
 class SettingsManager:
     def __init__(self) -> None:
         self.__settings = {}
+
+    @staticmethod
+    def __print_warning(param_name, default_value):
+        Logger.warning('Wrong "{}" value. Please, check settings file. Reset to default ({})'
+                        .format(param_name, default_value))
 
     def load(self, filename):
         path = pathlib.Path(filename)
@@ -36,23 +42,30 @@ class SettingsManager:
     def get_update_period(self):
         producer = self.__settings['producer']
         if not 'update_period_sec' in producer:
-            return DEFAULT_UPDATE_PERIOD_SEC
+            return _DEFAULT_UPDATE_PERIOD_SEC
         val = producer['update_period_sec']
         if not isinstance(val, (int, float)) or val < 0:
-            Logger.warning("Wrong update_period_sec value. Use default ({})"
-                            .format(DEFAULT_UPDATE_PERIOD_SEC))
-            return DEFAULT_UPDATE_PERIOD_SEC
+            self.__print_warning('update_period_sec', _DEFAULT_UPDATE_PERIOD_SEC)
+            return _DEFAULT_UPDATE_PERIOD_SEC
         return val
 
     def get_load_balancing_policy(self):
-        allowed_policies = ['round_robin', 'compressed']
         producer = self.__settings['producer']
+        allowed_policies = ['round_robin', 'compressed']
         if not 'load_balancing_policy' in producer:
-            return DEFAULT_LOAD_BALANCING_POLICY
-
+            return _DEFAULT_LOAD_BALANCING_POLICY
         if producer['load_balancing_policy'] in allowed_policies:
             return producer['load_balancing_policy']
         else:
-            Logger.warning('Unsupported load_balancing_policy! Check settings file. Use default ({})'
-                            .format(DEFAULT_LOAD_BALANCING_POLICY))
-            return DEFAULT_LOAD_BALANCING_POLICY
+            self.__print_warning('load_balancing_policy', _DEFAULT_LOAD_BALANCING_POLICY)
+            return _DEFAULT_LOAD_BALANCING_POLICY
+
+    def get_process_count(self):
+        producer = self.__settings['producer']
+        if not 'process_count' in producer:
+            return _DEFAULT_PROCESS_COUNT
+        val = producer['process_count']
+        if not isinstance(val, int) or val < 1:
+            self.__print_warning('process_count', _DEFAULT_PROCESS_COUNT)
+            return _DEFAULT_PROCESS_COUNT
+        return val

@@ -27,7 +27,8 @@ def activate_console_producer(settings_manager):
 
     site_mon = SiteMonitor(site_list,
                            settings_manager.get_update_period(),
-                           settings_manager.get_load_balancing_policy())
+                           settings_manager.get_load_balancing_policy(),
+                           settings_manager.get_process_count())
 
     return (True, site_mon.monitoring, site_mon.stop)
 
