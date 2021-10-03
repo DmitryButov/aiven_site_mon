@@ -37,25 +37,30 @@ def print_site_info_to_console(info):
     Logger.info(line)
 
 def check_site_worker(site):
-    #TODO сreate class SiteChecker
-    url = site.get_url()
-    pattern = site.get_pattern()
-    response = request_to_url(url)
-    info = {}
-    info['url'] = url
-    if response:
-        info['status'] = 'done'
-        info['status_code'] = response.status_code
-        info['access_time'] = response.elapsed.total_seconds()
-        info['search_result'] = search_pattern(pattern, response.text)
-    else:
-        info['status'] = 'error'
-        info['status_code'] = 0
-        info['access_time'] = 0
-        info['search_result'] = None
+    try:
+        #TODO сreate class SiteChecker
+        url = site.get_url()
+        pattern = site.get_pattern()
+        response = request_to_url(url)
+        info = {}
+        info['url'] = url
+        if response:
+            info['status'] = 'done'
+            info['status_code'] = response.status_code
+            info['access_time'] = response.elapsed.total_seconds()
+            info['search_result'] = search_pattern(pattern, response.text)
+        else:
+            info['status'] = 'error'
+            info['status_code'] = 0
+            info['access_time'] = 0
+            info['search_result'] = None
 
-    print_site_info_to_console(info)
-    return info
+        print_site_info_to_console(info)
+        return info
+
+    except Exception as e:
+        Logger.error("Exception in worker when handling site {} : {}".format(site, e))
+        return {}
 
 def info_handler(list):
     for info in list:
