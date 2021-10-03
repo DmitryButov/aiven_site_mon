@@ -27,6 +27,7 @@ def search_pattern(pattern, text):
     return result.group(1) if result else None
 
 def check_site_worker(site):
+    #TODO сreate class SiteChecker
     url = site.get_url()
     pattern = site.get_pattern()
     response = request_to_url(url)
@@ -67,9 +68,19 @@ class SiteMonitor:
         self.__load_balancer = LoadBalancer(check_site_worker, site_list, info_handler, processes)
 
     def monitoring(self):
-        time.sleep(self.__update_period_sec)
-        Logger.trace("monitoring...")
+        start_time = time.time()
+
+        Logger.info("monitoring...")
         self.__load_balancer.do_work()
+
+        work_duration = time.time() - start_time
+        delay = self.__update_period_sec - work_duration
+        Logger.info("sleep to {:.3f}".format(delay))
+        if delay > 0:
+            time.sleep(delay)
+        else:
+            Logger.warning("Processing takes a long time ({:.3f}sec). Please, increase update period."
+                            .format(work_duration))
 
     def stop(self):
         Logger.info("Monitor stopping...")
