@@ -8,11 +8,22 @@ def _init_worker():
 
 class LoadBalancer:
 
-    #balancing_policies:
+    # Balancing policies:
+    #   - ROUND_ROBIN
+    #       Jobs are evenly spread over time.
+    #       Each job works separately from others at regular update time intervals (run period_sec).
+    #       Time spread between starting jobs calculated as run period divided by amount of items in worker_data_list.
+    #       CPU load is balanced.
+    #   - COMPRESSED
+    #       Jobs are compressed in time.
+    #       The goal of this policy is to run all jobs (corresponding with items from worker_data_list) together,
+    #       in the shortest possible time.
+    #       This appoach can be applicable if needed to bind all jobs to some one timepoint.
+    #       CPU load is not balanced, it periodically increases to high values on polling timepoints
     ROUND_ROBIN = 'round_robin'
     COMPRESSED = 'compressed'
 
-    #internal consts
+    # Internal consts
     __MIN_PROCESSES = 1
     __MAX_PROCESSES = 50
     __MIN_PERIOD_SEC = 0.05
