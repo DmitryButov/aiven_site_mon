@@ -120,7 +120,6 @@ class LoadBalancer:
             Logger.warning('Processing takes a long time ({:.3f}sec). Please, increase update period.'
                             .format(work_duration))
 
-
     def stop(self):
-        self.__process_pool.close()
+        self.__process_pool.terminate()
         self.__process_pool.join()
