@@ -1,0 +1,23 @@
+{
+    "producer": {
+        "sites": [
+            {
+                "url": "https://example.com",
+                "pattern": "<title>(.+)</title>"
+            },
+            {
+                "url": "https://aiven.io/",
+                "pattern": ""
+            },
+            {
+                "url": "https://aiven.io/about",
+                "pattern": "<title>(.+)</title>"
+            }
+        ]
+    }
+}
+
+
+
+
+

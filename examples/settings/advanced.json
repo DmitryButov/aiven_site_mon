@@ -1,0 +1,26 @@
+{
+    "producer": {
+        "update_period_sec": 3.33,
+        "load_balancing_policy": "compressed",
+        "process_count": 2,
+        "sites": [
+            {
+                "url": "https://example.com",
+                "pattern": "<title>(.+)</title>"
+            },
+            {
+                "url": "https://aiven.io/",
+                "pattern": ""
+            },
+            {
+                "url": "https://aiven.io/about",
+                "pattern": "<title>(.+)</title>"
+            }
+        ]
+    }
+}
+
+
+
+
+
