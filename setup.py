@@ -15,4 +15,7 @@ setup(
             'aiven_site_mon=aiven_site_mon.common.console_app:main',
         ],
     },
+    install_requires=[
+        'requests>=2.26.0',
+    ]
 )
