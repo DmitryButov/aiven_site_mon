@@ -4,7 +4,7 @@ from aiven_site_mon.common import Logger, timeit
 
 def _init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    multiprocessing.current_process().name = "Worker-{}".format(os.getpid())
+    multiprocessing.current_process().name = 'Worker-{}'.format(os.getpid())
 
 class LoadBalancer:
 
@@ -80,24 +80,24 @@ class LoadBalancer:
         self.__max_working_time_sec = max_working_time_sec
         self.__process_pool         = multiprocessing.Pool(processes, initializer=_init_worker)
 
-        Logger.info("Load Balancer: Use {} balancing policy, use {} processes".
+        Logger.info('Load Balancer: Use {} balancing policy, use {} processes'.
                      format(balancing_policy, processes))
 
     def __do_comperessed(self):
-        Logger.trace("compressed work started...")
+        Logger.trace('compressed work started...')
         async_info_it = self.__process_pool.map_async(self.__worker, self.__worker_data_list)
         try:
             info_it = async_info_it.get(self.__max_working_time_sec)
             if self.__all_results_handler is not None:
                 self.__all_results_handler(list(info_it))
         except multiprocessing.TimeoutError:
-            Logger.error("Error: Working time is expired!")
+            Logger.error('Error: Working time is expired!')
 
     def __do_round_robin(self):
         idx = self.__item_idx
         item = self.__worker_data_list[idx]
 
-        Logger.trace("round-robin work started for {}".format(item))
+        Logger.trace('round-robin work started for {}'.format(item))
         self.__process_pool.apply_async(self.__worker, (item, ))
 
         idx += 1
@@ -112,12 +112,12 @@ class LoadBalancer:
 
         work_duration = time.time() - start_time
         delay = self.__run_period_sec - work_duration
-        Logger.trace("sleep to {:.3f}".format(delay))
+        Logger.trace('sleep to {:.3f}'.format(delay))
 
         if delay > 0:
             time.sleep(delay)
         else:
-            Logger.warning("Processing takes a long time ({:.3f}sec). Please, increase update period."
+            Logger.warning('Processing takes a long time ({:.3f}sec). Please, increase update period.'
                             .format(work_duration))
 
 
