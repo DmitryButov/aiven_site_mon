@@ -33,8 +33,6 @@ def main():
     if args.mode == 'console':
         site_list = settings_manager.get_site_list()
         site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
-        for item in site_list:
-            Logger.trace(item)
         process_func = site_mon.monitoring
         stop_func = site_mon.stop
     elif args.mode == 'kafka-producer':
