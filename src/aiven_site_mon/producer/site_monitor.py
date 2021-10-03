@@ -62,25 +62,15 @@ class SiteMonitor:
     __MIN_UPDATE_PERIOD_SEC = 1
 
     def __init__(self, site_list, update_period_sec, processes=os.cpu_count()) -> None:
-        if update_period_sec < self.__MIN_UPDATE_PERIOD_SEC:
-            update_period_sec = self.__MIN_UPDATE_PERIOD_SEC
-        self.__update_period_sec = update_period_sec
-        self.__load_balancer = LoadBalancer(check_site_worker, site_list, info_handler, processes)
+        self.__load_balancer = LoadBalancer(update_period_sec,
+                                            check_site_worker,
+                                            site_list,
+                                            info_handler,
+                                            processes)
 
     def monitoring(self):
-        start_time = time.time()
-
         Logger.info("monitoring...")
         self.__load_balancer.do_work()
-
-        work_duration = time.time() - start_time
-        delay = self.__update_period_sec - work_duration
-        Logger.info("sleep to {:.3f}".format(delay))
-        if delay > 0:
-            time.sleep(delay)
-        else:
-            Logger.warning("Processing takes a long time ({:.3f}sec). Please, increase update period."
-                            .format(work_duration))
 
     def stop(self):
         Logger.info("Monitor stopping...")
