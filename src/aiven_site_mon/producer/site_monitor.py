@@ -68,16 +68,15 @@ def info_handler(list):
         #TODO send in one packet info about sites to Kafka
 
 class SiteMonitor:
-    def __init__(self, site_list, update_period_sec, processes=os.cpu_count()) -> None:
-        self.__load_balancer = LoadBalancer(LoadBalancer.ROUND_ROBIN,
+    def __init__(self, site_list, update_period_sec, load_balancing_policy=LoadBalancer.ROUND_ROBIN, processes=os.cpu_count()) -> None:
+        self.__load_balancer = LoadBalancer(load_balancing_policy,
                                             update_period_sec,
-                                            check_site_worker, #check_site_worker,
+                                            check_site_worker,
                                             site_list,
                                             info_handler,
                                             processes)
 
     def monitoring(self):
-        Logger.info("monitoring...")
         self.__load_balancer.do_work()
 
     def stop(self):

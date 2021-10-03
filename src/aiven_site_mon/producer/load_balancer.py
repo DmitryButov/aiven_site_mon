@@ -7,9 +7,10 @@ def _init_worker():
     multiprocessing.current_process().name = "Worker-{}".format(os.getpid())
 
 class LoadBalancer:
-    #modes
-    ROUND_ROBIN = 1
-    COMPRESSED = 2
+
+    #balancing_policies:
+    ROUND_ROBIN = 'round_robin'
+    COMPRESSED = 'compressed'
 
     #internal consts
     __MIN_PROCESSES = 1
@@ -21,7 +22,7 @@ class LoadBalancer:
                   run_period_sec,
                   worker,
                   worker_data_list=None,
-                  all_results_handler=None,
+                  all_results_handler=None,     # use only for compressed policy
                   processes=os.cpu_count(),
                   max_working_time_sec=180
                 ) -> None:
@@ -56,21 +57,23 @@ class LoadBalancer:
             self.__run_period_sec = run_period_sec / len(worker_data_list)
             self.__balancing_func = self.__do_round_robin
             self.__item_idx = 0
-        elif self.COMPRESSED:
+        elif balancing_policy == self.COMPRESSED:
             self.__run_period_sec = run_period_sec
             self.__balancing_func = self.__do_comperessed
         else:
-            raise ValueError('wrong balancing policy value')
+            raise ValueError('wrong balancing policy: {}'.format(balancing_policy))
 
         self.__worker               = worker
         self.__worker_data_list     = worker_data_list
         self.__all_results_handler  = all_results_handler
-        self.__processes            = processes
         self.__max_working_time_sec = max_working_time_sec
-        self.__process_pool         = multiprocessing.Pool(self.__processes, initializer=_init_worker)
+        self.__process_pool         = multiprocessing.Pool(processes, initializer=_init_worker)
+
+        Logger.info("Load Balancer: Use {} balancing policy, use {} processes".
+                     format(balancing_policy, processes))
 
     def __do_comperessed(self):
-        Logger.trace("compressed work started (use {} processes)...".format(self.__processes))
+        Logger.trace("compressed work started...")
         async_info_it = self.__process_pool.map_async(self.__worker, self.__worker_data_list)
         try:
             info_it = async_info_it.get(self.__max_working_time_sec)
@@ -82,11 +85,12 @@ class LoadBalancer:
     def __do_round_robin(self):
         idx = self.__item_idx
         item = self.__worker_data_list[idx]
-        Logger.trace('round-robin work started for {}'.format(item) )
-        self.__process_pool.apply_async( self.__worker, (item, ) )
+
+        Logger.trace("round-robin work started for {}".format(item))
+        self.__process_pool.apply_async(self.__worker, (item, ))
 
         idx += 1
-        if idx == len(self.__worker_data_list):   idx = 0
+        if idx == len(self.__worker_data_list):  idx = 0
         self.__item_idx = idx
 
     @timeit
