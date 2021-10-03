@@ -1,6 +1,7 @@
 {
     "producer": {
         "load_balancing_policy": "compressed",
+        "update_period_sec": 3.33,
         "sites": [
             {
                 "url": "https://example.com",

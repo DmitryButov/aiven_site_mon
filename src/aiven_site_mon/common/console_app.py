@@ -6,8 +6,7 @@ from . import timeit
 from .settings_manager import SettingsManager
 from aiven_site_mon.producer import SiteMonitor
 
-#TODO read from settings.json
-DEFAULT_UPDATE_PERIOD_SEC = 3
+
 
 def __parse_console_args():
     parser = argparse.ArgumentParser()
@@ -27,7 +26,7 @@ def activate_console_producer(settings_manager):
         return (False, None, None)
 
     site_mon = SiteMonitor(site_list,
-                           DEFAULT_UPDATE_PERIOD_SEC,
+                           settings_manager.get_update_period(),
                            settings_manager.get_load_balancing_policy())
 
     return (True, site_mon.monitoring, site_mon.stop)

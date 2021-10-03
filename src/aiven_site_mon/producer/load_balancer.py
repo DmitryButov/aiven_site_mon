@@ -80,8 +80,8 @@ class LoadBalancer:
         self.__max_working_time_sec = max_working_time_sec
         self.__process_pool         = multiprocessing.Pool(processes, initializer=_init_worker)
 
-        Logger.info('Load Balancer: Use {} balancing policy, use {} processes'.
-                     format(balancing_policy, processes))
+        Logger.info('Load Balancer: Use period {} sec, {} balancing policy, {} processes'.
+                     format(run_period_sec, balancing_policy, processes))
 
     def __do_comperessed(self):
         Logger.trace('compressed work started...')
