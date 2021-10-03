@@ -1,6 +1,6 @@
 {
     "producer": {
-        "load_balancing_policy": "round_robin",
+        "load_balancing_policy": "compressed",
         "sites": [
             {
                 "url": "https://example.com",

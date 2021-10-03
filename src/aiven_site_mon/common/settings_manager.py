@@ -2,6 +2,8 @@ import pathlib
 import json
 from . import Logger, Site
 
+DEFAULT_LOAD_BALANCING_POLICY = 'round_robin'
+
 class SettingsManager:
     def __init__(self) -> None:
         self.__settings = {}
@@ -29,3 +31,16 @@ class SettingsManager:
         except:
             Logger.warning('wrong site list content')
         return site_list
+
+    def get_load_balancing_policy(self):
+        allowed_policies = ['round_robin', 'compressed']
+        producer = self.__settings['producer']
+        if 'load_balancing_policy' in producer:
+            if producer['load_balancing_policy'] in allowed_policies:
+                return producer['load_balancing_policy']
+            else:
+                Logger.warning('Unsupported load_balancing_policy! Check settings file. Use default ({})'
+                            .format(DEFAULT_LOAD_BALANCING_POLICY))
+                return DEFAULT_LOAD_BALANCING_POLICY
+        else:
+            return DEFAULT_LOAD_BALANCING_POLICY

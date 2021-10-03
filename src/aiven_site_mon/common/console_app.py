@@ -25,7 +25,11 @@ def activate_console_producer(settings_manager):
     if len(site_list) == 0:
         Logger.warning("site list can't be empty")
         return (False, None, None)
-    site_mon = SiteMonitor(site_list, DEFAULT_UPDATE_PERIOD_SEC)
+
+    site_mon = SiteMonitor(site_list,
+                           DEFAULT_UPDATE_PERIOD_SEC,
+                           settings_manager.get_load_balancing_policy())
+
     return (True, site_mon.monitoring, site_mon.stop)
 
 @timeit
