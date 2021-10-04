@@ -43,7 +43,7 @@ This product developing on Python 3.6.9
   python3 -m pip install --editable .
   ```
 
-> Note: you can find more details about installing packages and usage virtual environment inside [this guide]( https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
+> Note: you can find more details about installing packages and usage virtual environment inside [this guide](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
 ## Usage examples
 

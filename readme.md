@@ -20,7 +20,7 @@ The website monitor perform the periodically checks:
 - as well as optionally checking the returned page contents for a regexp pattern that is expected to be found on the page.
 
   > Note: Application is under development.
-  > At this moment we support only console website monitor without communication with Kafka. Also you cab select one of 2 load_balancing_policy (see details in settings description)
+  > At this moment we support only console website monitor without communication with Kafka. Also you can select one of 2 load_balancing_policy (see details in settings description)
 
 ## Getting Started
 
@@ -62,7 +62,7 @@ Most important arguments:
 
 - `-v` or  `--version` -  get aiven_site_mon version
 - `-s ` or `--settings` for select settings json file. This arg is required
-- -m  or `--mode` - operating mode. Tool can be launched in 3 modes:
+- `-m ` or `--mode` - operating mode. Tool can be launched in 3 modes:
   - `console` - site monitor with output to command-line
   - `kafka-producer` - this mode not implemented now! under developing
   - `kafka-consumer`-  this mode not implemented now! under developing
@@ -107,9 +107,9 @@ Settings related with site monitoring collected in `producer`:
 - `sites` - array of site objects. Each site contain site `url` and search `pattern`. You can set a pattern for search some content by regex. If pattern is not needed, just use empty sting as `pattern` value
 - `update_period_sec` - update period if each site in seconds. if not specified, the default will be used: 3 seconds
 - `process_count` - amount of parallel processes.  If not specified, the default will be used. By default process count is equal to CPU cores in system.
-- `load_balancing_policy`  Used for managing load to CPUs. If not specified, the default will be used.  Default value is `round_robin`  Supported policies: `round_robin` , `compressed`.  See details below
+- `load_balancing_policy`  Used for managing load to CPUs.  Supported values: `round_robin` , `compressed`.  If not specified, the default will be used. Default value is `round_robin` . See details below.
 
-> Note: Application is under development
+> Note: Application is under development.
 > We will add more details as the project develops.
 
 ### Load balancing policy
