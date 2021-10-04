@@ -27,6 +27,6 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         duration = time.time() - start_time
-        Logger.trace("Function ""{}"" done at {:.3f} seconds".format(func.__name__, duration))
+        Logger.trace('Function "{}" done at {:.3f} seconds'.format(func.__name__, duration))
         return result
     return wrapper
